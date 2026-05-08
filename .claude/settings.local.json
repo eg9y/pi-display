@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv sync:*)",
+      "Bash(uv run:*)",
+      "Bash(ls -t ~/.claude/projects/-Users-eganbisma-Projects-claude-display/*.jsonl)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "Bash(ls /Users/eganbisma/.claude/sessions/cd54e6a9-7763-4559-86ae-7cf5b439974e*)",
+      "Bash(cat /Users/eganbisma/.claude/session-env/cd54e6a9-7763-4559-86ae-7cf5b439974e/*.json)",
+      "Bash(ls /Users/eganbisma/.claude/todos/cd54e6a9-7763-4559-86ae-7cf5b439974e*)",
+      "Bash(grep:*)",
+      "Bash(ls -lt ~/.claude/projects/-Users-eganbisma-Projects-claude-display/*.jsonl)",
+      "Bash(chmod +x *)",
+      "Bash(cat /Users/eganbisma/Projects/claude-display/hooks/*.py)",
+      "WebSearch"
+    ]
+  }
+}

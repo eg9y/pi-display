@@ -1,0 +1,17 @@
+- Passive Buzzer Module, 5 Pcs 3. 3-5V Passive Low Level Buzzer Frequency Controllable Sound Module with 3 Pin Control for Electronic Projects
+- AITRIP 6 PCS TCA9548A I2C IIC Multiplexer Breakout Board 8 Channel Expansion Board for Arduino (6PCS)
+- PBT Low Profile Keycaps for Kailh Chocolate Switch Mechanical Keyboard, 40 Pieces, Frosted Transparent Black
+- ELEGOO 32 Pcs Double Sided PCB Board Prototype Kit for DIY Soldering with 5 Sizes Compatible with Arduino Kits
+- WGGE WG-015 Professional 8-inch Wire Stripper/Crimping Tool, Cable Cutter/Crimper, Wiring and Multi-Function Hand Tool, Red With Black
+- KOTTO Solder Smoke Absorber Remover Fume Extractor Smoke Prevention Absorber DIY Working Fan for Soldering Station (Yellow)
+- ELEGOO 120pcs Multicolored Dupont Wire 40pin Male to Female, 40pin Male to Male, 40pin Female to Female Breadboard Jumper Ribbon Cables Kit Compatible with Arduino Projects
+- Hakko FX888DX-010YW - Digital Soldering Station with Rotary Encoder (Yellow Housing)
+- LBOKLING 5 Inch Micro Flush Cutter, 2 Pack Small Wire Cutters Spring Loaded Cutting Pliers, Wire Cutters for Jewelry Making, Soft Copper Wire, Floral, Electronics, Model Craft, Heating Wire, 3D Print
+- ANXRE 71" Phone Tripod, NT79 Extendable Selfie Stick with 1/4" Camera Mount for Cell Phone＆Camera, Phone Tripod Stand Holder with Remote Compatible with iPhone Android, Camera
+- MAIYUM 63-37 Tin Lead Rosin Core Solder Wire for Electrical Soldering (0.8mm 50g) 
+- Desoldering Wick and Soldering Flux Paste for Electronics Repair, No Clean Flux(10CC), Solder Removal Kit
+- KAILH Official Store Low Profile Switch 1350 Chocolate Kailh Mechanical Keyboard Switch RGB SMD Clicky (10, Choc White)
+- ELEGOO 6PCS 400 Point Breadboard Kit Solderless Breadboards for Arduino Project Small Bread Board Electronics for Circuits PCB Prototype Board
+- ESP-WROOM-32 ESP32 ESP-32S Development Board 2.4GHz Dual-Mode WiFi + Bluetooth Dual Cores Microcontroller Processor Integrated with Antenna RF AMP Filter AP STA Compatible with Arduino IDE (3PCS)
+- 40pcs 20 cm (8 inch) Male to Male Multicolored Dupont Wire Breadboard Jumper Ribbon Cables Compatible with Arduino Projects(M/M)
+- Hosyond 5 Pcs 0.96 Inch OLED I2C IIC Display Module 12864 128x64 Pixel SSD1306 Mini Self-Luminous OLED Screen Board Compatible with Arduino Raspberry Pi (White)
