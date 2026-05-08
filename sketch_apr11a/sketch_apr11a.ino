@@ -1,5 +1,5 @@
 // ============================================================
-// Claude Code Hardware Monitor — ESP32 Firmware
+// Pi Agent Hardware Monitor — ESP32 Firmware
 // ============================================================
 
 #include <WiFi.h>
@@ -14,9 +14,9 @@
 // #include <Adafruit_NeoPixel.h>
 
 // ===================== CONFIG =====================
-// CHANGE THESE to your WiFi network name and password
-const char* WIFI_SSID     = "WhiteSky-Cornell";
-const char* WIFI_PASSWORD = "wrf3rfq8";
+// Copy secrets_example.h to secrets.h and fill in your credentials.
+// secrets.h is gitignored so your password never enters version control.
+#include "secrets.h"
 // ==================================================
 
 
@@ -50,6 +50,8 @@ struct TileState {
   unsigned long mascotAnimStartMs;
   bool   waitingAnimActive;
   unsigned long waitingAnimStartMs;
+  bool   focusAnimActive;
+  unsigned long focusAnimStartMs;
 };
 
 TileState tiles[NUM_TILES];
@@ -123,6 +125,8 @@ void initTiles() {
     tiles[i].mascotAnimStartMs = 0;
     tiles[i].waitingAnimActive = false;
     tiles[i].waitingAnimStartMs = 0;
+    tiles[i].focusAnimActive = false;
+    tiles[i].focusAnimStartMs = 0;
   }
 }
 
@@ -143,6 +147,10 @@ unsigned long lastSweepMs = 0;
 // `mascotAnimActive`/`mascotAnimStartMs` decide when it plays on each tile.
 const unsigned long MASCOT_ANIM_DURATION_MS = 2200;
 
+// Focus animation — fires when a tile's keypad button is pressed (or a focus
+// event lands over WS). Visually announces *which* tile is now in focus.
+const unsigned long FOCUS_ANIM_DURATION_MS = 1500;
+
 // ---- Buzzer: blocking note + jingle helpers ----
 void playTone(int freq, int durMs) {
   tone(BUZZER_PIN, freq, durMs);
@@ -162,6 +170,9 @@ void playJingle(const char* kind) {
   } else if (strcmp(kind, "boot") == 0) {
     playTone(784, 60);
     playTone(1047, 80);  // C6
+  } else if (strcmp(kind, "focus") == 0) {
+    playTone(659, 50);   // E5
+    playTone(988, 70);   // B5
   }
 }
 
@@ -484,6 +495,93 @@ void drawWaitingAnimation(unsigned long elapsed) {
   display.display();
 }
 
+// ---- "Focus" announcement animation ----
+// Big "K<slot>" badge drops in from above with a bounce, Clawd hops alongside,
+// border flashes, and corner sparkles fan out in the first ~250ms. Auto-clears
+// after FOCUS_ANIM_DURATION_MS so the tile returns to its regular display.
+void drawFocusAnimation(unsigned long elapsed, int slot) {
+  display.clearDisplay();
+
+  // Corner sparkles: short diagonals shooting in from each corner toward center.
+  if (elapsed < 250) {
+    int len = elapsed / 12;       // 0..20
+    if (len > 20) len = 20;
+    display.drawLine(0, 0, len, len, SSD1306_WHITE);
+    display.drawLine(SCREEN_WIDTH - 1, 0,
+                     SCREEN_WIDTH - 1 - len, len, SSD1306_WHITE);
+    display.drawLine(0, SCREEN_HEIGHT - 1,
+                     len, SCREEN_HEIGHT - 1 - len, SSD1306_WHITE);
+    display.drawLine(SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1,
+                     SCREEN_WIDTH - 1 - len,
+                     SCREEN_HEIGHT - 1 - len, SSD1306_WHITE);
+  }
+
+  // Clawd hopping (same 4-phase cycle as DONE, faster cadence)
+  int phase = (elapsed / 130) % 4;
+  static const int bobTable[4] = {0, -3, 0, -3};
+  static const int dxTable[4]  = {0, -1, 0, +1};
+  const unsigned char* walkFrames[4] = {
+    CLAWD_FRAME_1, CLAWD_FRAME_HOP, CLAWD_FRAME_2, CLAWD_FRAME_HOP
+  };
+  bool blink = ((elapsed / 110) % 8 == 7);
+  const unsigned char* frame = blink ? CLAWD_FRAME_BLINK : walkFrames[phase];
+
+  const int scale = 2;
+  const int spriteW = 16 * scale;
+  const int spriteH = 16 * scale;
+
+  // Measure the K<N> label so we can center sprite + label as one composite.
+  char label[8];
+  snprintf(label, sizeof(label), "K%d", slot);
+  display.setTextSize(3);
+  display.setTextColor(SSD1306_WHITE);
+  int16_t x1, y1; uint16_t lw, lh;
+  display.getTextBounds(label, 0, 0, &x1, &y1, &lw, &lh);
+
+  const int gap = 8;
+  int totalW = spriteW + gap + (int)lw;
+  int compositeX = (SCREEN_WIDTH - totalW) / 2;
+
+  int sx = compositeX + dxTable[phase];
+  int sy = (SCREEN_HEIGHT - spriteH) / 2 + bobTable[phase];
+
+  for (int row = 0; row < 16; row++) {
+    uint8_t leftByte  = pgm_read_byte(&frame[row * 2]);
+    uint8_t rightByte = pgm_read_byte(&frame[row * 2 + 1]);
+    uint16_t bits = ((uint16_t)leftByte << 8) | rightByte;
+    for (int col = 0; col < 16; col++) {
+      if (bits & (1 << (15 - col))) {
+        display.fillRect(sx + col * scale, sy + row * scale,
+                         scale, scale, SSD1306_WHITE);
+      }
+    }
+  }
+
+  // K<N> label drops in from above the screen, lands at center with overshoot.
+  int targetY = (SCREEN_HEIGHT - (int)lh) / 2;
+  int ty;
+  if (elapsed < 250) {
+    ty = -((int)lh) + (int)((elapsed * (targetY + (int)lh)) / 250);
+  } else if (elapsed < 380) {
+    int settleT = (int)elapsed - 250;
+    int overshoot = 4 - (settleT * 4) / 130;   // 4 → 0 over 130ms
+    ty = targetY + overshoot;
+  } else {
+    ty = targetY;
+  }
+  int tx = compositeX + spriteW + gap;
+  display.setCursor(tx, ty);
+  display.print(label);
+  display.setTextSize(1);
+
+  // Pulsing border to scream "I'm the focused one"
+  if ((elapsed / 130) % 2 == 0) {
+    display.drawRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SSD1306_WHITE);
+  }
+
+  display.display();
+}
+
 // ---- Update NeoPixel ring based on status ----
 // One ring, many tiles → pick the "loudest" status across all tiles so
 // any active agent lights up the room. Priority: error > tool_use > thinking
@@ -557,6 +655,9 @@ void onWebSocketEvent(uint8_t clientNum, WStype_t type, uint8_t* payload, size_t
           } else if (ev == "waiting_for_user") {
             t.waitingAnimActive = true;
             t.waitingAnimStartMs = millis();
+          } else if (ev == "focus") {
+            t.focusAnimActive = true;
+            t.focusAnimStartMs = millis();
           }
         };
         if (slot >= 1 && slot <= (int)NUM_TILES) {
@@ -567,6 +668,7 @@ void onWebSocketEvent(uint8_t clientNum, WStype_t type, uint8_t* payload, size_t
         // Jingle once regardless of slot — the buzzer is shared hardware.
         if (ev == "session_done") playJingle("done");
         else if (ev == "waiting_for_user") playJingle("waiting");
+        else if (ev == "focus") playJingle("focus");
         return;
       }
 
@@ -662,6 +764,13 @@ void pollButtons() {
         snprintf(buf, sizeof(buf), "{\"event\":\"focus\",\"slot\":%d}", slot);
         webSocket.broadcastTXT(buf);
         Serial.printf("[BTN] focus slot=%d\n", slot);
+
+        // Local feedback: kick off the focus animation on this tile and chirp.
+        // We don't wait for the bridge — pressing the key should *immediately*
+        // light up the corresponding OLED so it's obvious which one is focused.
+        tiles[i].focusAnimActive = true;
+        tiles[i].focusAnimStartMs = millis();
+        playJingle("focus");
       }
     }
   }
@@ -670,7 +779,7 @@ void pollButtons() {
 // ========== SETUP ==========
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n=== Claude Code Monitor ===");
+  Serial.println("\n=== Pi Agent Monitor ===");
 
   initTiles();
   setupButtons();
@@ -808,7 +917,17 @@ void loop() {
     tca_select(TILE_CHANNELS[i]);
     TileState& t = tiles[i];
 
-    if (t.waitingAnimActive) {
+    // Focus animation has top priority — it's user feedback for the press
+    // they just made and should preempt anything else briefly.
+    if (t.focusAnimActive) {
+      unsigned long elapsed = now - t.focusAnimStartMs;
+      if (elapsed >= FOCUS_ANIM_DURATION_MS) {
+        t.focusAnimActive = false;
+        drawTile(t);
+      } else {
+        drawFocusAnimation(elapsed, i + 1);
+      }
+    } else if (t.waitingAnimActive) {
       drawWaitingAnimation(now - t.waitingAnimStartMs);
     } else if (t.mascotAnimActive) {
       unsigned long elapsed = now - t.mascotAnimStartMs;

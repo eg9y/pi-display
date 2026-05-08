@@ -15,3 +15,6 @@ wheels/
 .piolibdeps/
 .vscode/
 
+# ESP32 secrets (WiFi password)
+sketch_apr11a/secrets.h
+
